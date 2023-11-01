@@ -32,6 +32,9 @@ def download_data(data_dir="data/"):
     data_dir.mkdir(parents=True, exist_ok=True)
     for data_file in data_files:
         if not (data_path := data_dir / data_file[0]).exists():
+            # Notify user that we're downloading a file
+            print(f"Downloading the {data_file[0]}.... ", end="")
+
             # User Agents required to trick Yahoo filter
             headers = {"User-Agent": user_agent_rotator.get_random_user_agent()}
             resp = requests.get(data_file[1], headers=headers)
@@ -42,6 +45,9 @@ def download_data(data_dir="data/"):
             # Save file in data_dir
             with open(data_path, "wb") as f:
                 f.write(resp.content)
+
+            # Notify user that we're done download a file
+            print("Done!")
 
 
 if __name__ == "__main__":
