@@ -15,7 +15,9 @@ QRT_BAL_FILE = "quarterly_balance_sheet_formatted.csv"
 QRT_CASH_FILE = "quarterly_cash_flow_formatted.csv"
 QRT_FIN_FILE = "quarterly_financials_formatted.csv"
 
-def get_data_tensor(data_dir: str=DATA_DIR,
+def get_data_tensor(relative_change: bool=True,
+                    target_column: str="Close",
+                    data_dir: str=DATA_DIR,
                     *,
                     div_file: str=DIV_FILE,
                     splits_file: str=SPLITS_FILE,
@@ -23,10 +25,13 @@ def get_data_tensor(data_dir: str=DATA_DIR,
                     mon_val_file: str=MON_VAL_FILE,
                     qrt_bal_file: str=QRT_BAL_FILE,
                     qrt_cash_file: str=QRT_CASH_FILE,
-                    qrt_fin_file: str=QRT_FIN_FILE,
-                    target_column: str="Close"):
+                    qrt_fin_file: str=QRT_FIN_FILE):
     """
     Args:
+        relative_change (bool): If True, inputs will be fraction of change from
+            previous day instead of absolute values.
+        target_column (string): Name of column from one of the CSVs to be the
+            the first feature.
         data_dir (string): Relative file path to directory with data.
         div_file (string): Filename for dividends CSV or None to not load.
         splits_file (string): Filename for splits CSV or None to not load.
@@ -36,8 +41,6 @@ def get_data_tensor(data_dir: str=DATA_DIR,
             load.
         qrt_cash_file (string): Filename for cash flow CSV or None to not load.
         qrt_fin_file (string): Filename for financials CSV or None to not load.
-        target_column (string): Name of column from one of the CSVs to be the
-            the first feature.
 
     Returns:
         A two dimensional torch.Tensor object with the dimensions:
@@ -163,8 +166,18 @@ def get_data_tensor(data_dir: str=DATA_DIR,
     new_col_order.remove(target_column)
     master_df = master_df[[target_column] + new_col_order]
 
-    # Return all the dataframes in a standardized, combined tensor
-    return torch.from_numpy(master_df.to_numpy(dtype=np.float32))
+    # Convert master_df to a standardized, combined PyTorch tensor
+    master_tens = torch.from_numpy(master_df.to_numpy(dtype=np.float32))
+
+    # If relative_change, convert data to fraction of change from previous day
+    if relative_change:
+        master_tens_rd = master_tens.roll(1, 0)
+        master_tens = (master_tens - master_tens_rd) / torch.abs(master_tens_rd)
+
+        # Discard first day because roll goes over edge of dataset
+        master_tens = master_tens[1:, :]
+
+    return master_tens
 
 
 def get_train_test_sets(train_split: float=0.8, shuffle=True):
