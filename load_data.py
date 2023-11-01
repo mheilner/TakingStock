@@ -8,7 +8,7 @@ DATA_DIR = Path("data/")
 DIV_FILE = "dividends.csv"
 SPLITS_FILE = "splits.csv"
 OHLCV_FILE = "historical.csv"
-MON_VAL_FILE = "monthly_valuation_measures.csv"
+MON_VAL_FILE = "monthly_valuation_measures_formatted.csv"
 QRT_BAL_FILE = "quarterly_balance_sheet_formatted.csv"
 QRT_CASH_FILE = "quarterly_cash_flow_formatted.csv"
 QRT_FIN_FILE = "quarterly_financials_formatted.csv"
@@ -61,6 +61,12 @@ def get_data_tensor(data_dir: str=DATA_DIR,
         dataframes["cash"] = pd.read_csv(data_dir / qrt_cash_file)
     if qrt_fin_file is not None:
         dataframes["financials"] = pd.read_csv(data_dir / qrt_fin_file)
+
+    # Transpose dataframes that have the date as columns instead of rows
+    dataframes["valuation"] = dataframes["valuation"].transpose()
+    dataframes["balance"] = dataframes["balance"].transpose()
+    dataframes["cash"] = dataframes["cash"].transpose()
+    dataframes["financials"] = dataframes["financials"].transpose()
 
     # TODO: Read in all the dataframes into some standardized, combined tensor
 
