@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
+from utils.StockDataset import StockDataset
 from pathlib import Path
 from download_data import download_data
 from pandas.api.types import is_datetime64_any_dtype, is_string_dtype
@@ -180,19 +181,23 @@ def get_data_tensor(relative_change: bool=True,
     return master_tens
 
 
-def get_train_test_sets(train_split: float=0.8, shuffle=True):
+def get_train_test_datasets(data_tensor: torch.Tensor,
+                            seq_len: int,
+                            train_split: float=0.8):
     """
     Args:
+        data_tensor (torch.Tensor): 2D tensor of dimensions (date, features)
+            where the first feature is the target feature.
+        seq_len (int): How many days of data to return before the target.
         train_split (float): What split of the data should be used for training.
-        shuffle (boolean): If the train and test tensors should be shuffled
-            AFTER the train-test split.
 
     Returns:
-        A tuple where the first element is the training data as a two
-        dimensional torch.Tensor object and the second element is the testing
-        data as a two dimensional torch.Tensor object, both with the dimensions:
-        (date, features).
+        A tuple where the first element is the training dataset and the second
+        element is the testing dataset, both objects inheriting from the class
+        torch.utils.data.Dataset.
     """
-    # TODO: Return the oldest data as the training data and the newest data as
-    #       the testing data
-    pass
+    train_tensor = data_tensor[:int(data_tensor.shape[0] * train_split)]
+    test_tensor = data_tensor[int(data_tensor.shape[0] * train_split):]
+
+    return (StockDataset(train_tensor, seq_len),
+           StockDataset(test_tensor, seq_len))
