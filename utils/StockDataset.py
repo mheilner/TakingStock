@@ -21,5 +21,6 @@ class StockDataset(Dataset):
         return self.data_tensor.shape[0] - self.seq_len
 
     def __getitem__(self, index: int):
-        return (self.data_tensor[index:index + self.seq_len],
+        # Skip the first column of data, seeing that it's the target feature
+        return (self.data_tensor[index:index + self.seq_len][1:],
                 self.data_tensor[index + self.seq_len, 0])
