@@ -1,0 +1,7 @@
+# Ignore pycache directories
+**/__pycache__/
+
+# Ignore freely accessable CSV files; they can be downloaded fresh
+**/dividends.csv
+**/historical.csv
+**/splits.csv
