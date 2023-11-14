@@ -199,4 +199,5 @@ def get_train_test_datasets(data_tensor: torch.Tensor,
     train_tensor = data_tensor[:int(data_tensor.shape[0] * train_split)]
     test_tensor = data_tensor[int(data_tensor.shape[0] * train_split):]
 
-    return train_tensor, test_tensor
+    return (StockDataset(train_tensor, seq_len),
+            StockDataset(test_tensor, seq_len))

@@ -12,10 +12,10 @@ class TestLearningModels:
     def __init__(self, type: str, seq_len: int):
         self.master_tensor = get_data_tensor(relative_change=False)
         self.seq_len = seq_len
-        print("Master Tensor Size: ", self.master_tensor.shape)
+        print(f"Master Tensor Shape: {self.master_tensor.shape}")
         self.master_train, self.master_test = get_train_test_datasets(self.master_tensor, self.seq_len, 0.8)
-        print("Master Train Size: ", self.master_train.size())
-        print("Master Test Size: ", self.master_test.size())
+        print(f"Number of Training Examples: {len(self.master_train)}")
+        print(f"Number of Testing Examples: {len(self.master_test)}")
         print("GPU available?: ", torch.cuda.is_available())
 
         if type == "lstm":
