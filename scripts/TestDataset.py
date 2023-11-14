@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 from sklearn.linear_model import Perceptron
 from utils.StockDataset import StockDataset
-from download_data import *
-from load_data import *
+from download_data import download_data
+from load_data import get_data_tensor, get_train_test_datasets
 
 
 class TestLearningModels:
