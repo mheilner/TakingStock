@@ -7,7 +7,7 @@ from download_data import download_data
 from pandas.api.types import is_datetime64_any_dtype, is_string_dtype
 
 # CONSTANTS
-DATA_DIR = Path("data/")
+DATA_DIR = Path(__file__).parent / "data"
 DIV_FILE = "dividends.csv"
 SPLITS_FILE = "splits.csv"
 OHLCV_FILE = "historical.csv"
