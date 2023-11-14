@@ -175,6 +175,11 @@ def get_data_tensor(relative_change: bool=True,
         master_tens_rd = master_tens.roll(1, 0)
         master_tens = (master_tens - master_tens_rd) / torch.abs(master_tens_rd)
 
+        # Manage possible division by 0 results. Replace NaNs with 0, positive
+        # infinities with the higest possible float, and negative infinities
+        # with the lowest possible float
+        master_tens.nan_to_num_(nan=0)
+
         # Discard first day because roll goes over edge of dataset
         master_tens = master_tens[1:, :]
 
