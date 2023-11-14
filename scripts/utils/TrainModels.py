@@ -8,14 +8,18 @@ from download_data import download_data
 from load_data import get_data_tensor, get_train_test_datasets
 
 
-class TestLearningModels:
+class TrainModels:
     def __init__(self, seq_len: int=100):
+        """
+        Args:
+            seq_len (int): How many days of data to return before the target.
+        """
         self.seq_len = seq_len
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        # Get train and test datasets for training models
         master_tensor = get_data_tensor(relative_change=True)
         print(f"Master Tensor Shape: {master_tensor.shape}")
-
         self.train_dataset, self.test_dataset = get_train_test_datasets(
                 data_tensor=master_tensor,
                 seq_len=seq_len,
@@ -26,7 +30,13 @@ class TestLearningModels:
         print(f"Training device: {self.device}")
 
     def train_perceptron(self):
+        """
+        Returns:
+            A fitted sklearn.linear_model.Perceptron instance.
+        """
         clf = Perceptron()
+
+        # Retrieve LARGE tensors of every single training and testing instances
         X, y = self.train_dataset.get_inputs_and_targets()
         X_test, y_test = self.test_dataset.get_inputs_and_targets()
 
@@ -44,25 +54,27 @@ class TestLearningModels:
         y = (y > 0).int()
         y_test = (y_test > 0).int()
 
+        # Train Perceptron
         clf.fit(X, y)
         print(clf.n_iter_)
         print("Average days increasing in value: ", clf.predict(X_test).mean())
 
+        return clf
+
     def train_RNN(self):
+        # TODO: Train and return a RNN model
         clf = nn.RNN(input_size=246, hidden_size=1, num_layers=13010)
         X, y = self.get_params(self.train_dataset)
         out, hn = clf(X, y)
 
     def train_LSTM(self):
+        # TODO: Train and return a LSTM model
         clf = nn.LSTM(input_size=246, hidden_size=1, num_layers=13010)
         X, y = self.get_params(self.train_dataset)
         out, hn = clf(X, y)
 
     def train_transformer(self):
+        # TODO: Train and return a Transformer model
         clf = nn.Transformer()
         X, y = self.get_params(self.train_dataset)
         out, hn = clf(X, y)
-        pass
-
-
-TestLearningModels(seq_len=100)
