@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
 import torch
-from utils.StockDataset import StockDataset
+from .StockDataset import StockDataset
 from pathlib import Path
-from download_data import download_data
+from .download_data import download_data
 from pandas.api.types import is_datetime64_any_dtype, is_string_dtype
 
 # CONSTANTS
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).parent.parent / "data"
 DIV_FILE = "dividends.csv"
 SPLITS_FILE = "splits.csv"
 OHLCV_FILE = "historical.csv"
@@ -51,7 +51,7 @@ def get_data_tensor(relative_change: bool=True,
     data_dir = Path(data_dir)
 
     # Attempt to download freely available CSVs
-    download_data(DATA_DIR)
+    download_data(data_dir)
 
     # Read in each data file. They are kept separate because each has a different
     # format
