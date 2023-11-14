@@ -25,25 +25,26 @@ class TestLearningModels:
         print(f"Number of Testing Examples: {len(self.test_dataset)}")
         print(f"Training device: {self.device}")
 
-    def get_params(self, data_tensor: torch.Tensor):
-        return (data_tensor[:,1:]), (data_tensor[:,0])
-
-    def divide(self, y):
-        for i in range(1, len(y)):
-            if y[i] > y[i-1]:
-                y[i] = 1
-            else:
-                y[i] = 0
-        y[0] = 0
-        print(y)
-        return y
-
     def train_perceptron(self):
         clf = Perceptron()
-        X,y = self.get_params(self.master_train)
-        X_test,y_test = self.get_params(self.master_test)
-        y = self.divide(y)
-        clf.fit(X,y)
+        X, y = self.train_dataset.get_inputs_and_targets()
+        X_test, y_test = self.test_dataset.get_inputs_and_targets()
+
+        # Flatten date and feature dimensions of inputs because sklearn only
+        # supports 2D tensors as inputs
+        X = X.flatten(start_dim=1, end_dim=-1)
+        X_test = X_test.flatten(start_dim=1, end_dim=-1)
+
+        # Make target tensors 1D for sklearn as well
+        y.squeeze_()
+        y_test.squeeze()
+
+        # Convert labels to 1 if positive, else 0 (limitation of sklearn only
+        # accepting int labels)
+        y = (y > 0).int()
+        y_test = (y_test > 0).int()
+
+        clf.fit(X, y)
         print(clf.n_iter_)
         print("Average days increasing in value: ", clf.predict(X_test).mean())
 
