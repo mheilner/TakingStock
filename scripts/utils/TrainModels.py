@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
+from os import cpu_count
 from sklearn.linear_model import Perceptron
 from .StockDataset import StockDataset
 from .download_data import download_data
@@ -16,15 +18,17 @@ class TrainModels:
         """
         self.seq_len = seq_len
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.loss_fn = nn.MSELoss()
 
         # Get train and test datasets for training models
         master_tensor = get_data_tensor(relative_change=True)
-        print(f"Master Tensor Shape: {master_tensor.shape}")
         self.train_dataset, self.test_dataset = get_train_test_datasets(
                 data_tensor=master_tensor,
                 seq_len=seq_len,
                 train_split=0.8)
 
+        # Print out statistics
+        print(f"Master Tensor Shape: {master_tensor.shape}")
         print(f"Number of Training Examples: {len(self.train_dataset)}")
         print(f"Number of Testing Examples: {len(self.test_dataset)}")
         print(f"Training device: {self.device}")
@@ -66,7 +70,9 @@ class TrainModels:
                   num_layers: int=2,
                   nonlinearity: str="tanh",
                   bias: bool=True,
-                  dropout: float=0):
+                  dropout: float=0,
+                  batch_size: int=1,
+                  lr: float=0.001):
         """
         Args:
             hidden_size (int): Number of features in each hidden state.
@@ -77,12 +83,24 @@ class TrainModels:
             dropout (float): If non-zero, introduces Dropout layer on the
                 outputs of each RNN layer expect the last layer, with dropout
                 probability equal to this value.
+            batch_size (int): How many samples per batch to load.
+            lr (float): Learning rate.
 
         Returns:
             Trained instance of torch.nn.RNN model.
         """
+        # Get train and test dataloaders
+        train_dataloader = DataLoader(dataset=self.train_dataset,
+                                      batch_size=batch_size,
+                                      shuffle=True,
+                                      num_workers=cpu_count())
+        test_dataloader = DataLoader(dataset=self.test_dataset,
+                                     batch_size=batch_size,
+                                     shuffle=True,
+                                     num_workers=cpu_count())
+
         # Create RNN instance
-        rnn_model = nn.RNN(input_size=self.train_dataset[0].shape[-1],
+        rnn_model = nn.RNN(input_size=self.train_dataset[0][0].shape[-1],
                      hidden_size=hidden_size,
                      num_layers=num_layers,
                      nonlinearity=nonlinearity,
@@ -90,6 +108,8 @@ class TrainModels:
                      batch_first=True,
                      dropout=dropout)
 
+        # Create optimizer
+        opt = torch.optim.Adam(params=rnn_model.parameters(), lr=lr)
 
     def train_LSTM(self):
         # TODO: Train and return a LSTM model
