@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
 import torch
-from utils.StockDataset import StockDataset
+from .StockDataset import StockDataset
 from pathlib import Path
-from download_data import download_data
+from .download_data import download_data
 from pandas.api.types import is_datetime64_any_dtype, is_string_dtype
 
 # CONSTANTS
-DATA_DIR = Path("data/")
+DATA_DIR = Path(__file__).parent.parent / "data"
 DIV_FILE = "dividends.csv"
 SPLITS_FILE = "splits.csv"
 OHLCV_FILE = "historical.csv"
@@ -51,7 +51,7 @@ def get_data_tensor(relative_change: bool=True,
     data_dir = Path(data_dir)
 
     # Attempt to download freely available CSVs
-    download_data(DATA_DIR)
+    download_data(data_dir)
 
     # Read in each data file. They are kept separate because each has a different
     # format
@@ -175,6 +175,11 @@ def get_data_tensor(relative_change: bool=True,
         master_tens_rd = master_tens.roll(1, 0)
         master_tens = (master_tens - master_tens_rd) / torch.abs(master_tens_rd)
 
+        # Manage possible division by 0 results. Replace NaNs with 0, positive
+        # infinities with the higest possible float, and negative infinities
+        # with the lowest possible float
+        master_tens.nan_to_num_(nan=0)
+
         # Discard first day because roll goes over edge of dataset
         master_tens = master_tens[1:, :]
 
@@ -199,4 +204,5 @@ def get_train_test_datasets(data_tensor: torch.Tensor,
     train_tensor = data_tensor[:int(data_tensor.shape[0] * train_split)]
     test_tensor = data_tensor[int(data_tensor.shape[0] * train_split):]
 
-    return train_tensor, test_tensor
+    return (StockDataset(train_tensor, seq_len),
+            StockDataset(test_tensor, seq_len))

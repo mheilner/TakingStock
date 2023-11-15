@@ -3,7 +3,7 @@ from pathlib import Path
 from random_user_agent.user_agent import UserAgent
 from random_user_agent.params import HardwareType, SoftwareName, OperatingSystem, Popularity
 
-def download_data(data_dir="data/"):
+def download_data(data_dir="../data/"):
     """
     Download the freely available CSVs from Yahoo Finance for Pfizer.
 
