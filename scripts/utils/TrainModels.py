@@ -3,8 +3,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from os import cpu_count
+from tqdm import tqdm
 from sklearn.linear_model import Perceptron
+from .models.RNN import RNN
 from .StockDataset import StockDataset
 from .download_data import download_data
 from .load_data import get_data_tensor, get_train_test_datasets
@@ -18,7 +21,9 @@ class TrainModels:
         """
         self.seq_len = seq_len
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.loss_fn = nn.MSELoss()
+
+        # Notice we're actually using just Squared Error (squared L2) loss here
+        self.loss_fn = nn.MSELoss(reduction="sum")
 
         # Get train and test datasets for training models
         master_tensor = get_data_tensor(relative_change=True)
@@ -32,6 +37,96 @@ class TrainModels:
         print(f"Number of Training Examples: {len(self.train_dataset)}")
         print(f"Number of Testing Examples: {len(self.test_dataset)}")
         print(f"Training device: {self.device}")
+
+    def _train_model(self,
+                     opt: torch.optim.Optimizer,
+                     model: nn.Module,
+                     train_dataloader: DataLoader,
+                     test_dataloader: DataLoader,
+                     stopping_lr: float):
+        """
+        Args:
+            opt (torch.optim.Optimizer): The optimizer to use for training.
+            model (nn.Module): The model to be trained.
+            train_dataloader (DataLoader): A DataLoader of the training data.
+            test_dataloader (DataLoader): A DataLoader of the testing data.
+            stopping_lr (float): Instead of training for a number of epochs,
+                decrease the learning rate until it is at or below the
+                stopping_lr.
+
+        Returns:
+            The trained nn.Module instance.
+        """
+        # Create Learning Rate Scheduler
+        lr_sched = ReduceLROnPlateau(opt, patience=5, verbose=True)
+
+        # Train until lr_sched and the lack of improvement on the test dataset
+        # breaks us out of the training loop
+        epoch_num = 0
+        while opt.param_groups[0]["lr"] > stopping_lr:
+            epoch_num += 1
+            print(f"\nEpoch #{epoch_num}:")
+
+            # Training loop
+            train_abs_err = 0
+            train_loss = 0
+            for batch_feats, batch_lbls in tqdm(train_dataloader):
+                # Move the data to the device for training, either GPU or CPU
+                batch_feats = batch_feats.to(device=self.device,
+                                             non_blocking=True)
+                batch_lbls = batch_lbls.to(device=self.device,
+                                           non_blocking=True)
+
+                # Reset gradients for optimizer
+                opt.zero_grad()
+
+                # Get model predictions
+                preds = model(batch_feats)
+
+                # Calculate absolute error between preds and labels
+                train_abs_err += torch.sum(torch.abs(preds - batch_lbls))
+
+                # Calculate loss (multiply by 10 because losses are small)
+                loss = self.loss_fn(preds, batch_lbls) * 10
+                train_loss += loss
+
+                # Backprop with gradient clipping to prevent exploding gradients
+                loss.backward()
+                opt.step()
+
+            print(f"Training MSE Loss: {train_loss / len(self.train_dataset)}")
+            print("Training Mean Absolute Error (MAE): "
+                  f"{train_abs_err / len(self.train_dataset)}")
+
+            # Testing loop
+            test_abs_err = 0
+            test_loss = 0
+            with torch.inference_mode():
+                for batch_feats, batch_lbls in tqdm(test_dataloader):
+                    # Move the data to the device for testing, either GPU or CPU
+                    batch_feats = batch_feats.to(device=self.device,
+                                                 non_blocking=True)
+                    batch_lbls = batch_lbls.to(device=self.device,
+                                               non_blocking=True)
+
+                    # Get model predictions
+                    preds = model(batch_feats)
+
+                    # Calculate absolute error between preds and labels
+                    test_abs_err += torch.sum(torch.abs(preds - batch_lbls))
+
+                    # Calculate loss (multiply by 10 because losses are small)
+                    loss = self.loss_fn(preds, batch_lbls) * 10
+                    test_loss += loss
+
+            print(f"Testing MSE Loss: {test_loss / len(self.test_dataset)}")
+            print("Testing Mean Absolute Error (MAE): "
+                  f"{test_abs_err / len(self.test_dataset)}")
+
+            # Pass the Learning Rate Scheduler the results
+            lr_sched.step(test_loss)
+
+        return model
 
     def train_perceptron(self):
         """
@@ -72,10 +167,11 @@ class TrainModels:
                   bias: bool=True,
                   dropout: float=0,
                   batch_size: int=1,
-                  lr: float=0.001):
+                  lr: float=0.005,
+                  stopping_lr: float=0.0001):
         """
         Args:
-            hidden_size (int): Number of features in each hidden state.
+            hidden_size (int): Number of features in each hidden state layer.
             num_layers (int): Number of recurrent layers. Any number greater
                 than 1 results in a "stacked RNN".
             nonlinearity (str): Either "tanh" or "relu".
@@ -84,10 +180,13 @@ class TrainModels:
                 outputs of each RNN layer expect the last layer, with dropout
                 probability equal to this value.
             batch_size (int): How many samples per batch to load.
-            lr (float): Learning rate.
+            lr (float): Initial learning rate.
+            stopping_lr (float): Instead of training for a number of epochs,
+                decrease the learning rate until it is at or below the
+                stopping_lr.
 
         Returns:
-            Trained instance of torch.nn.RNN model.
+            Trained instance of RNN model.
         """
         # Get train and test dataloaders
         train_dataloader = DataLoader(dataset=self.train_dataset,
@@ -100,16 +199,22 @@ class TrainModels:
                                      num_workers=cpu_count())
 
         # Create RNN instance
-        rnn_model = nn.RNN(input_size=self.train_dataset[0][0].shape[-1],
-                     hidden_size=hidden_size,
-                     num_layers=num_layers,
-                     nonlinearity=nonlinearity,
-                     bias=bias,
-                     batch_first=True,
-                     dropout=dropout)
+        rnn_model = torch.compile(RNN(
+                        input_size=self.train_dataset[0][0].shape[-1],
+                        hidden_size=hidden_size,
+                        num_layers=num_layers,
+                        nonlinearity=nonlinearity,
+                        bias=bias,
+                        dropout=dropout)).to(self.device)
 
         # Create optimizer
         opt = torch.optim.Adam(params=rnn_model.parameters(), lr=lr)
+
+        return self._train_model(opt=opt,
+                                 model=rnn_model,
+                                 train_dataloader=train_dataloader,
+                                 test_dataloader=test_dataloader,
+                                 stopping_lr=stopping_lr)
 
     def train_LSTM(self):
         # TODO: Train and return a LSTM model
