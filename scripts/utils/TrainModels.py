@@ -61,9 +61,35 @@ class TrainModels:
 
         return clf
 
-    def train_RNN(self):
-        # TODO: Train and return a RNN model
-        clf = nn.RNN(input_size=246, hidden_size=1, num_layers=13010)
+    def train_RNN(self,
+                  hidden_size: int=64,
+                  num_layers: int=2,
+                  nonlinearity: str="tanh",
+                  bias: bool=True,
+                  dropout: float=0):
+        """
+        Args:
+            hidden_size (int): Number of features in each hidden state.
+            num_layers (int): Number of recurrent layers. Any number greater
+                than 1 results in a "stacked RNN".
+            nonlinearity (str): Either "tanh" or "relu".
+            bias (bool): If bias weights should be used in every layer.
+            dropout (float): If non-zero, introduces Dropout layer on the
+                outputs of each RNN layer expect the last layer, with dropout
+                probability equal to this value.
+
+        Returns:
+            Trained instance of torch.nn.RNN model.
+        """
+        # Create RNN instance
+        rnn_model = nn.RNN(input_size=self.train_dataset[0].shape[-1],
+                     hidden_size=hidden_size,
+                     num_layers=num_layers,
+                     nonlinearity=nonlinearity,
+                     bias=bias,
+                     batch_first=True,
+                     dropout=dropout)
+
 
     def train_LSTM(self):
         # TODO: Train and return a LSTM model
