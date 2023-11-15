@@ -64,17 +64,11 @@ class TrainModels:
     def train_RNN(self):
         # TODO: Train and return a RNN model
         clf = nn.RNN(input_size=246, hidden_size=1, num_layers=13010)
-        X, y = self.get_params(self.train_dataset)
-        out, hn = clf(X, y)
 
     def train_LSTM(self):
         # TODO: Train and return a LSTM model
         clf = nn.LSTM(input_size=246, hidden_size=1, num_layers=13010)
-        X, y = self.get_params(self.train_dataset)
-        out, hn = clf(X, y)
 
     def train_transformer(self):
         # TODO: Train and return a Transformer model
         clf = nn.Transformer()
-        X, y = self.get_params(self.train_dataset)
-        out, hn = clf(X, y)
