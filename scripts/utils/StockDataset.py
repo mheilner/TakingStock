@@ -21,9 +21,18 @@ class StockDataset(Dataset):
         return self.data_tensor.shape[0] - self.seq_len
 
     def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index of which instance from the dataset to return.
+
+        Returns:
+            A tuple where the first element contains the features, of
+            dimensions (self.seq_len, features), and the second element is the
+            target for the instance, of dimensions (1, 1).
+        """
         # Skip the first column of data, seeing that it's the target feature
         return (self.data_tensor[index:index + self.seq_len, 1:],
-                self.data_tensor[index + self.seq_len, 0])
+                self.data_tensor[index + self.seq_len, 0].unsqueeze(-1))
 
     def get_inputs_and_targets(self):
         """
