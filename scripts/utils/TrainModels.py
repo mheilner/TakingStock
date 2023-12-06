@@ -219,10 +219,36 @@ class TrainModels:
                                  test_dataloader=test_dataloader,
                                  stopping_lr=stopping_lr)
 
-    def train_LSTM(self, input_size, hidden_size=50, num_layers=2, lr=0.001, stopping_lr=0.0001):
-        # Get train and test dataloaders (same as in train_RNN)
-        train_dataloader = DataLoader(self.train_dataset, batch_size=1, shuffle=True, num_workers=cpu_count())
-        test_dataloader = DataLoader(self.test_dataset, batch_size=1, shuffle=True, num_workers=cpu_count())
+    def train_LSTM(self,
+               input_size: int,
+               hidden_size: int = 50,
+               num_layers: int = 2,
+               lr: float = 0.001,
+               stopping_lr: float = 0.0001,
+               batch_size: int = 1):
+        """
+        Trains an LSTM model on the provided dataset.
+
+        Args:
+            input_size (int): Number of expected features in the input `x`.
+            hidden_size (int): Number of features in the hidden state `h`.
+            num_layers (int): Number of recurrent layers in the LSTM.
+            lr (float): Learning rate for the optimizer.
+            stopping_lr (float): Learning rate at which training stops.
+            batch_size (int): Batch size for training and testing data.
+
+        Returns:
+            Trained instance of LSTM model.
+        """
+        # Get train and test dataloaders
+        train_dataloader = DataLoader(dataset=self.train_dataset,
+                                    batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=cpu_count())
+        test_dataloader = DataLoader(dataset=self.test_dataset,
+                                    batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=cpu_count())
 
         # Create LSTM model instance
         lstm_model = LSTMModel(input_size, hidden_size, num_layers).to(self.device)
@@ -230,7 +256,7 @@ class TrainModels:
         # Create optimizer
         optimizer = torch.optim.Adam(lstm_model.parameters(), lr=lr)
 
-        # Train the model
+        # Train the model using the _train_model method
         return self._train_model(optimizer, lstm_model, train_dataloader, test_dataloader, stopping_lr)
 
 
