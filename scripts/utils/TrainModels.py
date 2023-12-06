@@ -11,7 +11,7 @@ from .models.RNN import RNN
 from .StockDataset import StockDataset
 from .download_data import download_data
 from .load_data import get_data_tensor, get_train_test_datasets
-
+from .models.LSTM import LSTMModel
 
 class TrainModels:
     def __init__(self, seq_len: int=100):
@@ -219,9 +219,20 @@ class TrainModels:
                                  test_dataloader=test_dataloader,
                                  stopping_lr=stopping_lr)
 
-    def train_LSTM(self):
-        # TODO: Train and return a LSTM model
-        clf = nn.LSTM(input_size=246, hidden_size=1, num_layers=13010)
+    def train_LSTM(self, input_size, hidden_size=50, num_layers=2, lr=0.001, stopping_lr=0.0001):
+        # Get train and test dataloaders (same as in train_RNN)
+        train_dataloader = DataLoader(self.train_dataset, batch_size=1, shuffle=True, num_workers=cpu_count())
+        test_dataloader = DataLoader(self.test_dataset, batch_size=1, shuffle=True, num_workers=cpu_count())
+
+        # Create LSTM model instance
+        lstm_model = LSTMModel(input_size, hidden_size, num_layers).to(self.device)
+
+        # Create optimizer
+        optimizer = torch.optim.Adam(lstm_model.parameters(), lr=lr)
+
+        # Train the model
+        return self._train_model(optimizer, lstm_model, train_dataloader, test_dataloader, stopping_lr)
+
 
     def train_transformer(self):
         # TODO: Train and return a Transformer model
