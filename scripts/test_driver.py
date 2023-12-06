@@ -16,7 +16,9 @@ num_dataloader_processes = 0 if ON_MAC_COMPUTER else cpu_count()
 trained_rnn_model = model_trainer.train_RNN(batch_size=32,
                             num_dataloader_processes=num_dataloader_processes)
 
-# TODO: Train LSTM
+# Train LSTM
+print("Now training LSTM....")
+trained_lstm_model = model_trainer.train_LSTM(batch_size=32)
 
 # TODO: Train Transformer
 
