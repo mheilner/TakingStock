@@ -8,6 +8,7 @@ from os import cpu_count
 from tqdm import tqdm
 from sklearn.linear_model import Perceptron
 from .models.RNN import RNN
+from .models.Transformer import Transformer
 from .StockDataset import StockDataset
 from .download_data import download_data
 from .load_data import get_data_tensor, get_train_test_datasets
@@ -220,6 +221,61 @@ class TrainModels:
         # TODO: Train and return a LSTM model
         clf = nn.LSTM(input_size=246, hidden_size=1, num_layers=13010)
 
-    def train_transformer(self):
-        # TODO: Train and return a Transformer model
-        clf = nn.Transformer()
+    def train_transformer(self,
+                          num_heads: int=6,
+                          hidden_size: int=2048,
+                          num_layers: int=6,
+                          nonlinearity: str="gelu",
+                          bias: bool=True,
+                          dropout: float=0.1,
+                          batch_size: int=32,
+                          lr: float=0.005,
+                          stopping_lr: float=0.0001):
+        """
+        Args:
+            num_heads (int): Number of heads used in Multi-Headed Attention.
+            hidden_size (int): Number of features in each FFN hidden state layer.
+            num_layers (int): Number of decoders to stack.
+            nonlinearity (str): Either "gelu" or "relu".
+            bias (bool): If bias weights should be used in each FFN and
+                LayerNorm layer.
+            dropout (float): If non-zero, introduces Dropout layers with dropout
+                probability equal to this value.
+            batch_size (int): How many samples per batch to load.
+            lr (float): Initial learning rate.
+            stopping_lr (float): Instead of training for a number of epochs,
+                decrease the learning rate until it is at or below the
+                stopping_lr.
+
+        Returns:
+            Trained instance of Transformer model.
+        """
+        # Get train and test dataloaders
+        train_dataloader = DataLoader(dataset=self.train_dataset,
+                                      batch_size=batch_size,
+                                      shuffle=True,
+                                      num_workers=cpu_count())
+        test_dataloader = DataLoader(dataset=self.test_dataset,
+                                     batch_size=batch_size,
+                                     shuffle=True,
+                                     num_workers=cpu_count())
+
+        # Create Transformer instance
+        transformer_model = torch.compile(Transformer(
+                        input_size=self.train_dataset[0][0].shape[-1],
+                        num_heads=num_heads,
+                        hidden_size=hidden_size,
+                        num_layers=num_layers,
+                        nonlinearity=nonlinearity,
+                        bias=bias,
+                        dropout=dropout,
+                        seq_len=self.seq_len)).to(self.device)
+
+        # Create optimizer
+        opt = torch.optim.Adam(params=transformer_model.parameters(), lr=lr)
+
+        return self._train_model(opt=opt,
+                                 model=transformer_model,
+                                 train_dataloader=train_dataloader,
+                                 test_dataloader=test_dataloader,
+                                 stopping_lr=stopping_lr)

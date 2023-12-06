@@ -15,6 +15,8 @@ trained_rnn_model = model_trainer.train_RNN(batch_size=32)
 # TODO: Train LSTM
 
 # TODO: Train Transformer
+print("Now training Transformer....")
+trained_transformer_model = model_trainer.train_transformer()
 
 # TODO: Evaluate Perceptron
 
