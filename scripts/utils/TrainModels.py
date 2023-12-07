@@ -220,16 +220,19 @@ class TrainModels:
                                  stopping_lr=stopping_lr)
 
     def train_LSTM(self,
-               input_size: int,
-               hidden_size: int = 50,
-               num_layers: int = 2,
-               lr: float = 0.001,
-               stopping_lr: float = 0.0001,
-               batch_size: int = 1):
+                num_dataloader_processes: int,
+                input_size: int,
+                hidden_size: int = 50,
+                num_layers: int = 2,
+                lr: float = 0.001,
+                stopping_lr: float = 0.0001,
+                batch_size: int = 1):
         """
         Trains an LSTM model on the provided dataset.
 
         Args:
+            num_dataloader_processes (int): Number of processes to use for
+                dataloading.
             input_size (int): Number of expected features in the input `x`.
             hidden_size (int): Number of features in the hidden state `h`.
             num_layers (int): Number of recurrent layers in the LSTM.
@@ -244,11 +247,11 @@ class TrainModels:
         train_dataloader = DataLoader(dataset=self.train_dataset,
                                     batch_size=batch_size,
                                     shuffle=True,
-                                    num_workers=cpu_count())
+                                    num_workers=num_dataloader_processes)
         test_dataloader = DataLoader(dataset=self.test_dataset,
                                     batch_size=batch_size,
                                     shuffle=True,
-                                    num_workers=cpu_count())
+                                    num_workers=num_dataloader_processes)
 
         # Create LSTM model instance
         lstm_model = LSTMModel(input_size, hidden_size, num_layers).to(self.device)
