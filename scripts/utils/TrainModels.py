@@ -161,6 +161,7 @@ class TrainModels:
         return clf
 
     def train_RNN(self,
+                  num_dataloader_processes: int,
                   hidden_size: int=64,
                   num_layers: int=2,
                   nonlinearity: str="tanh",
@@ -171,6 +172,8 @@ class TrainModels:
                   stopping_lr: float=0.0001):
         """
         Args:
+            num_dataloader_processes (int): Number of processes to use for
+                dataloading.
             hidden_size (int): Number of features in each hidden state layer.
             num_layers (int): Number of recurrent layers. Any number greater
                 than 1 results in a "stacked RNN".
@@ -192,11 +195,11 @@ class TrainModels:
         train_dataloader = DataLoader(dataset=self.train_dataset,
                                       batch_size=batch_size,
                                       shuffle=True,
-                                      num_workers=cpu_count())
+                                      num_workers=num_dataloader_processes)
         test_dataloader = DataLoader(dataset=self.test_dataset,
                                      batch_size=batch_size,
                                      shuffle=True,
-                                     num_workers=cpu_count())
+                                     num_workers=num_dataloader_processes)
 
         # Create RNN instance
         rnn_model = torch.compile(RNN(
