@@ -7,8 +7,8 @@ SEQ_LEN = 100
 model_trainer = TrainModels(seq_len=SEQ_LEN)
 
 # Train Perceptron
-print("Now training Perceptron....")
-trained_perc_model = model_trainer.train_perceptron()
+# print("Now training Perceptron....")
+# trained_perc_model = model_trainer.train_perceptron()
 
 # Train RNN
 print("Now training RNN....")
@@ -17,8 +17,8 @@ trained_rnn_model = model_trainer.train_RNN(batch_size=32,
                             num_dataloader_processes=num_dataloader_processes)
 
 # Train LSTM
-print("Now training LSTM....")
-trained_lstm_model = model_trainer.train_LSTM(batch_size=32)
+# print("Now training LSTM....")
+# trained_lstm_model = model_trainer.train_LSTM(batch_size=32, input_size=100)
 
 # TODO: Train Transformer
 
