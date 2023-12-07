@@ -30,6 +30,8 @@ class Transformer(nn.Module):
         self.memory = nn.Parameter(torch.randn(seq_len, input_size))
 
         # Define layers of network
+        self.input_batch_norm = nn.BatchNorm1d(num_features=input_size)
+
         decoder_layer = nn.TransformerDecoderLayer(d_model=input_size,
                                                    nhead=num_heads,
                                                    dim_feedforward=hidden_size,
@@ -54,6 +56,11 @@ class Transformer(nn.Module):
             A torch.Tensor of the predicted next day values with the dimensions
             (batch_size, 1).
         """
+        # Run input through a Batch Norm layer to prevent nan values later
+        x = x.transpose(-1, -2)
+        x = self.input_batch_norm(x)
+        x = x.transpose(-1, -2)
+
         # Run input through Transformer decoder stack
         x = self.decoder_stack(tgt=x, memory=torch.stack([self.memory] * x.shape[0]))
 
