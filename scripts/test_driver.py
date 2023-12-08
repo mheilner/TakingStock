@@ -20,7 +20,8 @@ trained_rnn_model = model_trainer.train_RNN(batch_size=32,
 
 # TODO: Train Transformer
 print("Now training Transformer....")
-trained_transformer_model = model_trainer.train_transformer()
+trained_transformer_model = model_trainer.train_transformer(
+                            num_dataloader_processes=num_dataloader_processes)
 
 # TODO: Evaluate Perceptron
 

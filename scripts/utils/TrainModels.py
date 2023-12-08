@@ -225,6 +225,7 @@ class TrainModels:
         clf = nn.LSTM(input_size=246, hidden_size=1, num_layers=13010)
 
     def train_transformer(self,
+                          num_dataloader_processes: int,
                           num_heads: int=6,
                           hidden_size: int=2048,
                           num_layers: int=6,
@@ -236,6 +237,8 @@ class TrainModels:
                           stopping_lr: float=0.0001):
         """
         Args:
+            num_dataloader_processes (int): Number of processes to use for
+                dataloading.
             num_heads (int): Number of heads used in Multi-Headed Attention.
             hidden_size (int): Number of features in each FFN hidden state layer.
             num_layers (int): Number of decoders to stack.
@@ -257,11 +260,11 @@ class TrainModels:
         train_dataloader = DataLoader(dataset=self.train_dataset,
                                       batch_size=batch_size,
                                       shuffle=True,
-                                      num_workers=cpu_count())
+                                      num_workers=num_dataloader_processes)
         test_dataloader = DataLoader(dataset=self.test_dataset,
                                      batch_size=batch_size,
                                      shuffle=True,
-                                     num_workers=cpu_count())
+                                     num_workers=num_dataloader_processes)
 
         # Create Transformer instance
         transformer_model = torch.compile(Transformer(
