@@ -39,9 +39,6 @@ class TrainModels:
         print(f"Number of Testing Examples: {len(self.test_dataset)}")
         print(f"Training device: {self.device}")
 
-        # Grab the input size that is needed for the LSTM model
-        self.input_size = master_tensor.shape[1] - 1
-
     def _train_model(self,
                      opt: torch.optim.Optimizer,
                      model: nn.Module,
@@ -236,7 +233,6 @@ class TrainModels:
         Args:
             num_dataloader_processes (int): Number of processes to use for
                 dataloading.
-            input_size (int): Number of expected features in the input `x`.
             hidden_size (int): Number of features in the hidden state `h`.
             num_layers (int): Number of recurrent layers in the LSTM.
             lr (float): Learning rate for the optimizer.
@@ -257,7 +253,7 @@ class TrainModels:
                                     num_workers=num_dataloader_processes)
         
         # Create LSTM model instance
-        lstm_model = LSTMModel(self.input_size, hidden_size, num_layers).to(self.device)
+        lstm_model = LSTMModel(self.train_dataset[0][0].shape[-1], hidden_size, num_layers).to(self.device)
 
         # Create optimizer
         optimizer = torch.optim.Adam(lstm_model.parameters(), lr=lr)
