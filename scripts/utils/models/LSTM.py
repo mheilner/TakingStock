@@ -2,7 +2,11 @@ import torch
 from torch import nn
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size=1):
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 num_layers: int,
+                 output_size: int=1):
         """
         LSTM Model for time series prediction.
 
@@ -10,7 +14,7 @@ class LSTMModel(nn.Module):
             input_size (int): Number of expected features in the input `x`.
             hidden_size (int): Number of features in the hidden state `h`.
             num_layers (int): Number of recurrent layers in the LSTM.
-            output_size (int, optional): Number of features in the output. Default is 1.
+            output_size (int): Number of features in the output. Default is 1.
 
         The LSTM model is designed for time series prediction tasks. It takes a sequence
         of data points as input and predicts the next value in the sequence.
@@ -25,7 +29,7 @@ class LSTMModel(nn.Module):
         # Fully connected layer to output the prediction
         self.fc = nn.Linear(hidden_size, output_size)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         """
         Defines the forward pass of the LSTM model.
 
