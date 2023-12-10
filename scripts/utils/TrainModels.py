@@ -8,11 +8,11 @@ from os import cpu_count
 from tqdm import tqdm
 from sklearn.linear_model import Perceptron
 from .models.RNN import RNN
+from .models.LSTM import LSTMModel
 from .models.Transformer import Transformer
 from .StockDataset import StockDataset
 from .download_data import download_data
 from .load_data import get_data_tensor, get_train_test_datasets
-
 
 class TrainModels:
     def __init__(self, seq_len: int=100):
@@ -220,9 +220,47 @@ class TrainModels:
                                  test_dataloader=test_dataloader,
                                  stopping_lr=stopping_lr)
 
-    def train_LSTM(self):
-        # TODO: Train and return a LSTM model
-        clf = nn.LSTM(input_size=246, hidden_size=1, num_layers=13010)
+    def train_LSTM(self,
+                num_dataloader_processes: int,
+                hidden_size: int = 50,
+                num_layers: int = 2,
+                lr: float = 0.001,
+                stopping_lr: float = 0.0001,
+                batch_size: int = 1):
+        """
+        Trains an LSTM model on the provided dataset.
+
+        Args:
+            num_dataloader_processes (int): Number of processes to use for
+                dataloading.
+            hidden_size (int): Number of features in the hidden state `h`.
+            num_layers (int): Number of recurrent layers in the LSTM.
+            lr (float): Learning rate for the optimizer.
+            stopping_lr (float): Learning rate at which training stops.
+            batch_size (int): Batch size for training and testing data.
+
+        Returns:
+            Trained instance of LSTM model.
+        """
+        # Get train and test dataloaders
+        train_dataloader = DataLoader(dataset=self.train_dataset,
+                                    batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=num_dataloader_processes)
+        test_dataloader = DataLoader(dataset=self.test_dataset,
+                                    batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=num_dataloader_processes)
+        
+        # Create LSTM model instance
+        lstm_model = LSTMModel(self.train_dataset[0][0].shape[-1], hidden_size, num_layers).to(self.device)
+
+        # Create optimizer
+        optimizer = torch.optim.Adam(lstm_model.parameters(), lr=lr)
+
+        # Train the model using the _train_model method
+        return self._train_model(optimizer, lstm_model, train_dataloader, test_dataloader, stopping_lr)
+
 
     def train_transformer(self,
                           num_dataloader_processes: int,
