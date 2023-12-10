@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-class LSTMModel(nn.Module):
+class LSTM(nn.Module):
     def __init__(self,
                  input_size: int,
                  hidden_size: int,
@@ -19,7 +19,7 @@ class LSTMModel(nn.Module):
         The LSTM model is designed for time series prediction tasks. It takes a sequence
         of data points as input and predicts the next value in the sequence.
         """
-        super(LSTMModel, self).__init__()
+        super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
