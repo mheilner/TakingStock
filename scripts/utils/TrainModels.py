@@ -8,11 +8,11 @@ from os import cpu_count
 from tqdm import tqdm
 from sklearn.linear_model import Perceptron
 from .models.RNN import RNN
+from .models.LSTM import LSTMModel
 from .models.Transformer import Transformer
 from .StockDataset import StockDataset
 from .download_data import download_data
 from .load_data import get_data_tensor, get_train_test_datasets
-from .models.LSTM import LSTMModel
 
 class TrainModels:
     def __init__(self, seq_len: int=100):
