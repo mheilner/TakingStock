@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from os import cpu_count
 from tqdm import tqdm
-from sklearn.linear_model import Perceptron
+from .models.Perceptron import Perceptron
 from .models.RNN import RNN
 from .models.LSTM import LSTMModel
 from .models.Transformer import Transformer
@@ -129,37 +129,51 @@ class TrainModels:
 
         return model
 
-    def train_perceptron(self):
+    def train_perceptron(self,
+                         num_dataloader_processes: int,
+                         bias: bool=True,
+                         batch_size: int=1,
+                         lr: float=0.01,
+                         stopping_lr: float=0.0001):
         """
+        Args:
+            num_dataloader_processes (int): Number of processes to use for
+                dataloading.
+            bias (bool): If bias weights should be used.
+            batch_size (int): How many samples per batch to load.
+            lr (float): Initial learning rate.
+            stopping_lr (float): Instead of training for a number of epochs,
+                decrease the learning rate until it is at or below the
+                stopping_lr.
+
         Returns:
-            A fitted sklearn.linear_model.Perceptron instance.
+            Trained instance of Perceptron/Linear model.
         """
-        clf = Perceptron()
+        # Get train and test dataloaders
+        train_dataloader = DataLoader(dataset=self.train_dataset,
+                                      batch_size=batch_size,
+                                      shuffle=True,
+                                      num_workers=num_dataloader_processes)
+        test_dataloader = DataLoader(dataset=self.test_dataset,
+                                     batch_size=batch_size,
+                                     shuffle=True,
+                                     num_workers=num_dataloader_processes)
 
-        # Retrieve LARGE tensors of every single training and testing instances
-        X, y = self.train_dataset.get_inputs_and_targets()
-        X_test, y_test = self.test_dataset.get_inputs_and_targets()
+        # Create RNN instance
+        perceptron_model = torch.compile(Perceptron(
+                        input_size=self.train_dataset[0][0].shape[-1],
+                        seq_len=self.seq_len,
+                        bias=bias)).to(self.device)
 
-        # Flatten date and feature dimensions of inputs because sklearn only
-        # supports 2D tensors as inputs
-        X = X.flatten(start_dim=1, end_dim=-1)
-        X_test = X_test.flatten(start_dim=1, end_dim=-1)
+        # Create optimizer
+        opt = torch.optim.Adam(params=perceptron_model.parameters(), lr=lr)
 
-        # Make target tensors 1D for sklearn as well
-        y.squeeze_()
-        y_test.squeeze()
+        return self._train_model(opt=opt,
+                                 model=perceptron_model,
+                                 train_dataloader=train_dataloader,
+                                 test_dataloader=test_dataloader,
+                                 stopping_lr=stopping_lr)
 
-        # Convert labels to 1 if positive, else 0 (limitation of sklearn only
-        # accepting int labels)
-        y = (y > 0).int()
-        y_test = (y_test > 0).int()
-
-        # Train Perceptron
-        clf.fit(X, y)
-        print(clf.n_iter_)
-        print("Average days increasing in value: ", clf.predict(X_test).mean())
-
-        return clf
 
     def train_RNN(self,
                   num_dataloader_processes: int,
@@ -222,11 +236,11 @@ class TrainModels:
 
     def train_LSTM(self,
                 num_dataloader_processes: int,
-                hidden_size: int = 50,
-                num_layers: int = 2,
-                lr: float = 0.001,
-                stopping_lr: float = 0.0001,
-                batch_size: int = 1):
+                hidden_size: int=50,
+                num_layers: int=2,
+                lr: float=0.001,
+                stopping_lr: float=0.0001,
+                batch_size: int=1):
         """
         Trains an LSTM model on the provided dataset.
 
@@ -270,7 +284,7 @@ class TrainModels:
                           nonlinearity: str="gelu",
                           bias: bool=True,
                           dropout: float=0.1,
-                          batch_size: int=32,
+                          batch_size: int=1,
                           lr: float=0.005,
                           stopping_lr: float=0.0001):
         """

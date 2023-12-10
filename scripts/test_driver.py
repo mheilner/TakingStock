@@ -13,22 +13,27 @@ num_dataloader_processes = 0 if ON_MAC_COMPUTER else cpu_count()
 
 # Train Perceptron
 print("Now training Perceptron....")
-trained_perc_model = model_trainer.train_perceptron()
+trained_perc_model = model_trainer.train_perceptron(
+                            num_dataloader_processes=num_dataloader_processes,
+                            batch_size=32)
 
 # Train RNN
 print("Now training RNN....")
-trained_rnn_model = model_trainer.train_RNN(batch_size=32,
-                            num_dataloader_processes=num_dataloader_processes)
+trained_rnn_model = model_trainer.train_RNN(
+                            num_dataloader_processes=num_dataloader_processes,
+                            batch_size=32)
 
 # Train LSTM
 print("Now training LSTM....")
-trained_lstm_model = model_trainer.train_LSTM(num_dataloader_processes=num_dataloader_processes,
-                                              batch_size=32)
+trained_lstm_model = model_trainer.train_LSTM(
+                            num_dataloader_processes=num_dataloader_processes,
+                            batch_size=32)
 
 # Train Transformer
 print("Now training Transformer....")
 trained_transformer_model = model_trainer.train_transformer(
-                            num_dataloader_processes=num_dataloader_processes)
+                            num_dataloader_processes=num_dataloader_processes,
+                            batch_size=32)
 
 # TODO: Evaluate Perceptron
 
