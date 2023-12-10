@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from os import cpu_count, makedirs, path
 from tqdm import tqdm
@@ -42,6 +43,7 @@ class TrainModels:
     def _train_model(self,
                      opt: torch.optim.Optimizer,
                      model: nn.Module,
+                     model_name: str,
                      train_dataloader: DataLoader,
                      test_dataloader: DataLoader,
                      stopping_lr: float):
@@ -49,6 +51,7 @@ class TrainModels:
         Args:
             opt (torch.optim.Optimizer): The optimizer to use for training.
             model (nn.Module): The model to be trained.
+            model_name (str): Name of model for tensorboard reporting.
             train_dataloader (DataLoader): A DataLoader of the training data.
             test_dataloader (DataLoader): A DataLoader of the testing data.
             stopping_lr (float): Instead of training for a number of epochs,
@@ -58,6 +61,10 @@ class TrainModels:
         Returns:
             The trained nn.Module instance.
         """
+        # Initialize SummaryWriter and metric dict for tensorboard statistics
+        makedirs("logs", exist_ok=True)
+        writer = SummaryWriter(path.join("logs", model_name))
+
         # Create Learning Rate Scheduler
         lr_sched = ReduceLROnPlateau(opt, patience=5, verbose=True)
 
@@ -95,9 +102,16 @@ class TrainModels:
                 loss.backward()
                 opt.step()
 
-            print(f"Training MSE Loss: {train_loss / len(self.train_dataset)}")
-            print("Training Mean Absolute Error (MAE): "
-                  f"{train_abs_err / len(self.train_dataset)}")
+            train_mse = train_loss / len(self.train_dataset)
+            train_mae = train_abs_err / len(self.train_dataset)
+            print(f"Training MSE Loss: {train_mse}")
+            print(f"Training Mean Absolute Error (MAE): {train_mae}")
+            writer.add_scalar(tag="train_mse",
+                              scalar_value=train_mse,
+                              global_step=epoch_num)
+            writer.add_scalar(tag="train_mae",
+                              scalar_value=train_mae,
+                              global_step=epoch_num)
 
             # Testing loop
             test_abs_err = 0
@@ -120,14 +134,24 @@ class TrainModels:
                     loss = self.loss_fn(preds, batch_lbls) * 10
                     test_loss += loss
 
-            print(f"Testing MSE Loss: {test_loss / len(self.test_dataset)}")
-            print("Testing Mean Absolute Error (MAE): "
-                  f"{test_abs_err / len(self.test_dataset)}")
+            test_mse = test_loss / len(self.test_dataset)
+            test_mae = test_abs_err / len(self.test_dataset)
+            print(f"Testing MSE Loss: {test_mse}")
+            print(f"Testing Mean Absolute Error (MAE): {test_mae}")
+            writer.add_scalar(tag="test_mse",
+                              scalar_value=test_mse,
+                              global_step=epoch_num)
+            writer.add_scalar(tag="test_mae",
+                              scalar_value=test_mae,
+                              global_step=epoch_num)
 
             # Pass the Learning Rate Scheduler the results
             lr_sched.step(test_loss)
 
+        writer.close()
+
         return model
+
 
     def train_perceptron(self,
                          num_dataloader_processes: int,
@@ -201,6 +225,7 @@ class TrainModels:
         # Train model
         perceptron_model = self._train_model(opt=opt,
                                              model=perceptron_model,
+                                             model_name="Perceptron",
                                              train_dataloader=train_dataloader,
                                              test_dataloader=test_dataloader,
                                              stopping_lr=stopping_lr)
@@ -302,6 +327,7 @@ class TrainModels:
         # Train model
         rnn_model = self._train_model(opt=opt,
                                       model=rnn_model,
+                                      model_name="RNN",
                                       train_dataloader=train_dataloader,
                                       test_dataloader=test_dataloader,
                                       stopping_lr=stopping_lr)
@@ -388,6 +414,7 @@ class TrainModels:
         # Train model
         lstm_model = self._train_model(opt=optimizer,
                                        model=lstm_model,
+                                       model_name="LSTM",
                                        train_dataloader=train_dataloader,
                                        test_dataloader=test_dataloader,
                                        stopping_lr=stopping_lr)
@@ -494,6 +521,7 @@ class TrainModels:
         # Train model
         transformer_model = self._train_model(opt=opt,
                                               model=transformer_model,
+                                              model_name="Transformer",
                                               train_dataloader=train_dataloader,
                                               test_dataloader=test_dataloader,
                                               stopping_lr=stopping_lr)
