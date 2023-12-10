@@ -4,11 +4,11 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from os import cpu_count
+from os import cpu_count, makedirs, path
 from tqdm import tqdm
 from .models.Perceptron import Perceptron
 from .models.RNN import RNN
-from .models.LSTM import LSTMModel
+from .models.LSTM import LSTM
 from .models.Transformer import Transformer
 from .StockDataset import StockDataset
 from .download_data import download_data
@@ -152,6 +152,33 @@ class TrainModels:
         Returns:
             Trained instance of Perceptron/Linear model.
         """
+        # Return pretrained model if requested and weights are present
+        if use_pretrained:
+            if path.isfile(path.join("weights", "Perceptron.pt")):
+                try:
+                    # Create model
+                    perceptron_model = Perceptron(
+                            input_size=self.train_dataset[0][0].shape[-1],
+                            seq_len=self.seq_len,
+                            bias=bias)
+
+                    # Load and modify model weights
+                    state_dict = torch.load(path.join("weights",
+                                                      "Perceptron.pt"))
+                    remove_prefix = "_orig_mod."
+                    state_dict = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in state_dict.items()}
+
+                    # Load weights into model
+                    perceptron_model.load_state_dict(state_dict)
+
+                    print("Pretrained weights found!")
+                    return perceptron_model
+                except Exception as e:
+                    print("The error below occured while attempting to " + \
+                          f"load model weights. Now training from scratch. {e}")
+            else:
+                print("Can't find model weights, so training from scratch.")
+
         # Get train and test dataloaders
         train_dataloader = DataLoader(dataset=self.train_dataset,
                                       batch_size=batch_size,
@@ -171,11 +198,19 @@ class TrainModels:
         # Create optimizer
         opt = torch.optim.Adam(params=perceptron_model.parameters(), lr=lr)
 
-        return self._train_model(opt=opt,
-                                 model=perceptron_model,
-                                 train_dataloader=train_dataloader,
-                                 test_dataloader=test_dataloader,
-                                 stopping_lr=stopping_lr)
+        # Train model
+        perceptron_model = self._train_model(opt=opt,
+                                             model=perceptron_model,
+                                             train_dataloader=train_dataloader,
+                                             test_dataloader=test_dataloader,
+                                             stopping_lr=stopping_lr)
+
+        # Save weights for the future
+        makedirs("weights/", exist_ok=True)
+        torch.save(perceptron_model.state_dict(), path.join("weights",
+                                                            "Perceptron.pt"))
+
+        return perceptron_model
 
 
     def train_RNN(self,
@@ -212,6 +247,36 @@ class TrainModels:
         Returns:
             Trained instance of RNN model.
         """
+        # Return pretrained model if requested and weights are present
+        if use_pretrained:
+            if path.isfile(path.join("weights", "RNN.pt")):
+                try:
+                    # Create model
+                    rnn_model = RNN(
+                            input_size=self.train_dataset[0][0].shape[-1],
+                            hidden_size=hidden_size,
+                            num_layers=num_layers,
+                            nonlinearity=nonlinearity,
+                            bias=bias,
+                            dropout=dropout)
+
+                    # Load and modify model weights
+                    state_dict = torch.load(path.join("weights",
+                                                      "RNN.pt"))
+                    remove_prefix = "_orig_mod."
+                    state_dict = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in state_dict.items()}
+
+                    # Load weights into model
+                    rnn_model.load_state_dict(state_dict)
+
+                    print("Pretrained weights found!")
+                    return rnn_model
+                except Exception as e:
+                    print("The error below occured while attempting to " + \
+                          f"load model weights. Now training from scratch. {e}")
+            else:
+                print("Can't find model weights, so training from scratch.")
+
         # Get train and test dataloaders
         train_dataloader = DataLoader(dataset=self.train_dataset,
                                       batch_size=batch_size,
@@ -234,11 +299,20 @@ class TrainModels:
         # Create optimizer
         opt = torch.optim.Adam(params=rnn_model.parameters(), lr=lr)
 
-        return self._train_model(opt=opt,
-                                 model=rnn_model,
-                                 train_dataloader=train_dataloader,
-                                 test_dataloader=test_dataloader,
-                                 stopping_lr=stopping_lr)
+        # Train model
+        rnn_model = self._train_model(opt=opt,
+                                      model=rnn_model,
+                                      train_dataloader=train_dataloader,
+                                      test_dataloader=test_dataloader,
+                                      stopping_lr=stopping_lr)
+
+        # Save weights for the future
+        makedirs("weights/", exist_ok=True)
+        torch.save(rnn_model.state_dict(), path.join("weights",
+                                                     "RNN.pt"))
+
+        return rnn_model
+
 
     def train_LSTM(self,
                 num_dataloader_processes: int,
@@ -265,6 +339,33 @@ class TrainModels:
         Returns:
             Trained instance of LSTM model.
         """
+        # Return pretrained model if requested and weights are present
+        if use_pretrained:
+            if path.isfile(path.join("weights", "LSTM.pt")):
+                try:
+                    # Create model
+                    lstm_model = LSTM(
+                            self.train_dataset[0][0].shape[-1],
+                            hidden_size,
+                            num_layers)
+
+                    # Load and modify model weights
+                    state_dict = torch.load(path.join("weights",
+                                                      "LSTM.pt"))
+                    remove_prefix = "_orig_mod."
+                    state_dict = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in state_dict.items()}
+
+                    # Load weights into model
+                    lstm_model.load_state_dict(state_dict)
+
+                    print("Pretrained weights found!")
+                    return lstm_model
+                except Exception as e:
+                    print("The error below occured while attempting to " + \
+                          f"load model weights. Now training from scratch. {e}")
+            else:
+                print("Can't find model weights, so training from scratch.")
+
         # Get train and test dataloaders
         train_dataloader = DataLoader(dataset=self.train_dataset,
                                     batch_size=batch_size,
@@ -276,13 +377,27 @@ class TrainModels:
                                     num_workers=num_dataloader_processes)
         
         # Create LSTM model instance
-        lstm_model = LSTMModel(self.train_dataset[0][0].shape[-1], hidden_size, num_layers).to(self.device)
+        lstm_model = torch.compile(LSTM(
+                        self.train_dataset[0][0].shape[-1],
+                        hidden_size,
+                        num_layers)).to(self.device)
 
         # Create optimizer
         optimizer = torch.optim.Adam(lstm_model.parameters(), lr=lr)
 
-        # Train the model using the _train_model method
-        return self._train_model(optimizer, lstm_model, train_dataloader, test_dataloader, stopping_lr)
+        # Train model
+        lstm_model = self._train_model(opt=optimizer,
+                                       model=lstm_model,
+                                       train_dataloader=train_dataloader,
+                                       test_dataloader=test_dataloader,
+                                       stopping_lr=stopping_lr)
+
+        # Save weights for the future
+        makedirs("weights/", exist_ok=True)
+        torch.save(lstm_model.state_dict(), path.join("weights",
+                                                      "LSTM.pt"))
+
+        return lstm_model
 
 
     def train_transformer(self,
@@ -320,6 +435,38 @@ class TrainModels:
         Returns:
             Trained instance of Transformer model.
         """
+        # Return pretrained model if requested and weights are present
+        if use_pretrained:
+            if path.isfile(path.join("weights", "Transformer.pt")):
+                try:
+                    # Create model
+                    transformer_model = Transformer(
+                            input_size=self.train_dataset[0][0].shape[-1],
+                            num_heads=num_heads,
+                            hidden_size=hidden_size,
+                            num_layers=num_layers,
+                            nonlinearity=nonlinearity,
+                            bias=bias,
+                            dropout=dropout,
+                            seq_len=self.seq_len)
+
+                    # Load and modify model weights
+                    state_dict = torch.load(path.join("weights",
+                                                      "Transformer.pt"))
+                    remove_prefix = "_orig_mod."
+                    state_dict = {k[len(remove_prefix):] if k.startswith(remove_prefix) else k: v for k, v in state_dict.items()}
+
+                    # Load weights into model
+                    transformer_model.load_state_dict(state_dict)
+
+                    print("Pretrained weights found!")
+                    return transformer_model
+                except Exception as e:
+                    print("The error below occured while attempting to " + \
+                          f"load model weights. Now training from scratch. {e}")
+            else:
+                print("Can't find model weights, so training from scratch.")
+
         # Get train and test dataloaders
         train_dataloader = DataLoader(dataset=self.train_dataset,
                                       batch_size=batch_size,
@@ -344,8 +491,16 @@ class TrainModels:
         # Create optimizer
         opt = torch.optim.Adam(params=transformer_model.parameters(), lr=lr)
 
-        return self._train_model(opt=opt,
-                                 model=transformer_model,
-                                 train_dataloader=train_dataloader,
-                                 test_dataloader=test_dataloader,
-                                 stopping_lr=stopping_lr)
+        # Train model
+        transformer_model = self._train_model(opt=opt,
+                                              model=transformer_model,
+                                              train_dataloader=train_dataloader,
+                                              test_dataloader=test_dataloader,
+                                              stopping_lr=stopping_lr)
+
+        # Save weights for the future
+        makedirs("weights/", exist_ok=True)
+        torch.save(transformer_model.state_dict(), path.join("weights",
+                                                             "Transformer.pt"))
+
+        return transformer_model
