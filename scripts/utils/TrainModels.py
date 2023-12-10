@@ -134,7 +134,8 @@ class TrainModels:
                          bias: bool=True,
                          batch_size: int=1,
                          lr: float=0.01,
-                         stopping_lr: float=0.0001):
+                         stopping_lr: float=0.0001,
+                         use_pretrained: bool=False):
         """
         Args:
             num_dataloader_processes (int): Number of processes to use for
@@ -145,6 +146,8 @@ class TrainModels:
             stopping_lr (float): Instead of training for a number of epochs,
                 decrease the learning rate until it is at or below the
                 stopping_lr.
+            use_pretrained (bool): If True, use pretrained weights if present
+                instead of training a new model.
 
         Returns:
             Trained instance of Perceptron/Linear model.
@@ -184,7 +187,8 @@ class TrainModels:
                   dropout: float=0,
                   batch_size: int=1,
                   lr: float=0.005,
-                  stopping_lr: float=0.0001):
+                  stopping_lr: float=0.0001,
+                  use_pretrained: bool=False):
         """
         Args:
             num_dataloader_processes (int): Number of processes to use for
@@ -202,6 +206,8 @@ class TrainModels:
             stopping_lr (float): Instead of training for a number of epochs,
                 decrease the learning rate until it is at or below the
                 stopping_lr.
+            use_pretrained (bool): If True, use pretrained weights if present
+                instead of training a new model.
 
         Returns:
             Trained instance of RNN model.
@@ -240,7 +246,8 @@ class TrainModels:
                 num_layers: int=2,
                 lr: float=0.001,
                 stopping_lr: float=0.0001,
-                batch_size: int=1):
+                batch_size: int=1,
+                use_pretrained: bool=False):
         """
         Trains an LSTM model on the provided dataset.
 
@@ -252,6 +259,8 @@ class TrainModels:
             lr (float): Learning rate for the optimizer.
             stopping_lr (float): Learning rate at which training stops.
             batch_size (int): Batch size for training and testing data.
+            use_pretrained (bool): If True, use pretrained weights if present
+                instead of training a new model.
 
         Returns:
             Trained instance of LSTM model.
@@ -286,7 +295,8 @@ class TrainModels:
                           dropout: float=0.1,
                           batch_size: int=1,
                           lr: float=0.005,
-                          stopping_lr: float=0.0001):
+                          stopping_lr: float=0.0001,
+                          use_pretrained: bool=False):
         """
         Args:
             num_dataloader_processes (int): Number of processes to use for
@@ -304,6 +314,8 @@ class TrainModels:
             stopping_lr (float): Instead of training for a number of epochs,
                 decrease the learning rate until it is at or below the
                 stopping_lr.
+            use_pretrained (bool): If True, use pretrained weights if present
+                instead of training a new model.
 
         Returns:
             Trained instance of Transformer model.
