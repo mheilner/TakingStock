@@ -25,7 +25,7 @@ print("Now training LSTM....")
 trained_lstm_model = model_trainer.train_LSTM(num_dataloader_processes=num_dataloader_processes,
                                               batch_size=32)
 
-# TODO: Train Transformer
+# Train Transformer
 print("Now training Transformer....")
 trained_transformer_model = model_trainer.train_transformer(
                             num_dataloader_processes=num_dataloader_processes)
