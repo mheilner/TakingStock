@@ -35,12 +35,9 @@ class LSTMModel(nn.Module):
         Returns:
             torch.Tensor: Output tensor with predictions, dimensions (batch_size, output_size).
         """
-        # Initialize hidden state and cell state with zeros
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
 
         # Forward pass through LSTM layer
-        out, _ = self.lstm(x, (h0, c0))
+        out, _ = self.lstm(x)
 
         # Pass the output of the last time step to the fully connected layer
         out = self.fc(out[:, -1, :])
