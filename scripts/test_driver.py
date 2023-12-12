@@ -18,7 +18,7 @@ from TakingStock.scripts.utils.models.Transformer import Transformer
 
 
 # IF YOU RUN A MAC, SET THIS TO TRUE
-ON_MAC_COMPUTER = False
+ON_MAC_COMPUTER = True
 
 SEQ_LEN = 100
 BATCH_SIZE = 32
