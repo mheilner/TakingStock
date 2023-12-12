@@ -174,6 +174,8 @@ def _evaluate_model(self, opt: torch.optim.Optimizer,
                           scalar_value=test_mse)
         writer.add_scalar(tag="test_mae",
                           scalar_value=test_mae)
+        # Pass the Learning Rate Scheduler the results
+        lr_sched.step(test_loss)
 
     writer.close()
 
