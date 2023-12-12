@@ -5,20 +5,20 @@ from tqdm import tqdm
 from os import cpu_count, makedirs, path
 from torch.utils.data import DataLoader
 
-from TakingStock.scripts.utils.load_data import get_train_test_datasets, get_data_tensor
+from utils.load_data import get_train_test_datasets, get_data_tensor
 from utils.TrainModels import TrainModels
 from torch.utils.tensorboard import SummaryWriter
 from torcheval.metrics import MulticlassAccuracy
 from torcheval.metrics import Perplexity
 
-from TakingStock.scripts.utils.models.Perceptron import Perceptron
-from TakingStock.scripts.utils.models.RNN import RNN
-from TakingStock.scripts.utils.models.LSTM import LSTM
-from TakingStock.scripts.utils.models.Transformer import Transformer
+from utils.models.Perceptron import Perceptron
+from utils.models.RNN import RNN
+from utils.models.LSTM import LSTM
+from utils.models.Transformer import Transformer
 
 
 # IF YOU RUN A MAC, SET THIS TO TRUE
-ON_MAC_COMPUTER = False
+ON_MAC_COMPUTER = True
 
 SEQ_LEN = 100
 BATCH_SIZE = 32
@@ -60,39 +60,23 @@ trained_transformer_model = model_trainer.train_transformer(
                             batch_size=BATCH_SIZE,
                             use_pretrained=True)
 
-def _evaluate_model(self, opt: torch.optim.Optimizer,
-                     model: nn.Module,
-                     model_name: str,
-                     train_dataloader: DataLoader,
-                     test_dataloader: DataLoader,
-                     stopping_lr: float):
+def evaluate_model(model: nn.Module,
+                   train_dataloader: DataLoader,
+                   test_dataloader: DataLoader):
 
     eval_frequency = 5
     makedirs("evals", exist_ok=True)
-    writer = SummaryWriter(path.join("evals", model_name))
     metric1 = MulticlassAccuracy(DEVICE)
     metric2 = Perplexity(DEVICE)
 
-    # Create Learning Rate Scheduler
-    lr_sched = ReduceLROnPlateau(opt, patience=5, verbose=True)
-
-    # Train until lr_sched and the lack of improvement on the test dataset
-    # breaks us out of the training loop
-    epoch_num = 0
-    while opt.param_groups[0]["lr"] > stopping_lr:
-        epoch_num += 1
-        print(f"\nEpoch #{epoch_num}:")
-
-        # Training loop
-        train_abs_err = 0
-        train_loss = 0
-        for batch_feats, batch_lbls in tqdm(train_dataloader):
-            # Move the data to the device for training, either GPU or CPU
-            batch_feats = batch_feats.to(device=self.device, non_blocking=True)
-            batch_lbls = batch_lbls.to(device=self.device, non_blocking=True)
-
-            # Reset gradients for optimizer
-            opt.zero_grad()
+    # Testing loop
+    test_abs_err = 0
+    test_loss = 0
+    with torch.inference_mode():
+        for batch_feats, batch_lbls in tqdm(test_dataloader):
+            # Move the data to the device for testing, either GPU or CPU
+            batch_feats = batch_feats.to(device=DEVICE, non_blocking=True)
+            batch_lbls = batch_lbls.to(DEVICE, non_blocking=True)
 
             # Updates metric states with new data calculated every 5 epochs
             # Computes accuracy and perplexity and adds values to a scalar
@@ -102,80 +86,21 @@ def _evaluate_model(self, opt: torch.optim.Optimizer,
                 accuracy = metric1.compute()
                 perplexity = metric2.compute()
 
-                writer.add_scalar(tag="train_accuracy",
-                                  scalar_value=accuracy)
-                writer.add_scalar(tag="train_perplexity",
-                                  scalar_value=perplexity)
-
             # Get model predictions
             preds = model(batch_feats)
 
             # Calculate absolute error between preds and labels
-            train_abs_err += torch.sum(torch.abs(preds - batch_lbls))
+            test_abs_err += torch.sum(torch.abs(preds - batch_lbls))
 
             # Calculate loss (multiply by 10 because losses are small)
             loss = self.loss_fn(preds, batch_lbls) * 10
-            train_loss += loss
+            test_loss += loss
 
-            # Backprop with gradient clipping to prevent exploding gradients
-            loss.backward()
-            opt.step()
+    test_mse = test_loss / len(self.test_dataset)
+    test_mae = test_abs_err / len(self.test_dataset)
+    print(f"Testing MSE Loss: {test_mse}")
+    print(f"Testing Mean Absolute Error (MAE): {test_mae}")
 
-        train_mse = train_loss / len(self.train_dataset)
-        train_mae = train_abs_err / len(self.train_dataset)
-        print(f"Evaluation Training MSE Loss: {train_mse}")
-        print(f"Evaluation Training Mean Absolute Error (MAE): {train_mae}")
-        writer.add_scalar(tag="train_mse",
-                          scalar_value=train_mse)
-        writer.add_scalar(tag="train_mae",
-                          scalar_value=train_mae)
-        # Resets metric states
-        metric1.reset()
-        metric2.reset()
-
-
-        # Testing loop
-        test_abs_err = 0
-        test_loss = 0
-        with torch.inference_mode():
-            for batch_feats, batch_lbls in tqdm(test_dataloader):
-                # Move the data to the device for testing, either GPU or CPU
-                batch_feats = batch_feats.to(device=DEVICE, non_blocking=True)
-                batch_lbls = batch_lbls.to(DEVICE, non_blocking=True)
-
-                # Updates metric states with new data calculated every 5 epochs
-                # Computes accuracy and perplexity and adds values to a scalar
-                metric1.update(batch_feats, batch_lbls)
-                metric2.update(batch_feats, batch_lbls)
-                if epoch_num % eval_frequency == 0:
-                    accuracy = metric1.compute()
-                    perplexity = metric2.compute()
-
-                    writer.add_scalar(tag="test_accuracy",
-                                      scalar_value=accuracy)
-                    writer.add_scalar(tag="test_perplexity",
-                                      scalar_value=perplexity)
-
-                # Get model predictions
-                preds = model(batch_feats)
-
-                # Calculate absolute error between preds and labels
-                test_abs_err += torch.sum(torch.abs(preds - batch_lbls))
-
-                # Calculate loss (multiply by 10 because losses are small)
-                loss = self.loss_fn(preds, batch_lbls) * 10
-                test_loss += loss
-
-        test_mse = test_loss / len(self.test_dataset)
-        test_mae = test_abs_err / len(self.test_dataset)
-        print(f"Testing MSE Loss: {test_mse}")
-        print(f"Testing Mean Absolute Error (MAE): {test_mae}")
-        writer.add_scalar(tag="test_mse",
-                          scalar_value=test_mse)
-        writer.add_scalar(tag="test_mae",
-                          scalar_value=test_mae)
-
-    writer.close()
 
 
 master_tensor = get_data_tensor(relative_change=True)
@@ -194,56 +119,28 @@ test_dataloader = DataLoader(dataset=test_dataset,
 
 
 # TODO: Evaluate Perceptron
-eval_perceptron_model = torch.compile(Perceptron(
-    input_size=train_dataset[0][0].shape[-1],
-    seq_len=SEQ_LEN,
-    bias=BIAS)).to(DEVICE)
-opt = torch.optim.Adam(params=eval_perceptron_model.parameters(), lr=LR)
-_evaluate_model(opt=opt,
-    model=eval_perceptron_model,
-    model_name="Perceptron",
+evaluate_model(
+    model=trained_perc_model,
     train_dataloader=train_dataloader,
-    test_dataloader=test_dataloader,
-    stopping_lr=STOP_LR)
+    test_dataloader=test_dataloader)
 
 # TODO: Evaluate RNN
 
-eval_rnn_model = torch.compile(Perceptron(
-    input_size=train_dataset[0][0].shape[-1],
-    seq_len=SEQ_LEN,
-    bias=BIAS)).to(DEVICE)
-opt = torch.optim.Adam(params=eval_rnn_model.parameters(), lr=LR)
-_evaluate_model(opt=opt,
-    model=eval_rnn_model,
-    model_name="RNN",
+evaluate_model(
+    model=trained_rnn_model,
     train_dataloader=train_dataloader,
-    test_dataloader=test_dataloader,
-    stopping_lr=STOP_LR)
+    test_dataloader=test_dataloader)
 
 # TODO: Evaluate LSTM
 
-eval_lstm_model = torch.compile(LSTM(
-    input_size=train_dataset[0][0].shape[-1],
-    seq_len=SEQ_LEN,
-    bias=BIAS)).to(DEVICE)
-opt = torch.optim.Adam(params=eval_rnn_model.parameters(), lr=LR)
-_evaluate_model(opt=opt,
-    model=eval_lstm_model,
-    model_name="LSTM",
+evaluate_model(
+    model=trained_lstm_model,
     train_dataloader=train_dataloader,
-    test_dataloader=test_dataloader,
-    stopping_lr=STOP_LR)
+    test_dataloader=test_dataloader)
 
 # TODO: Evaluate Transformer
 
-eval_trans_model = torch.compile(Transformer(
-    input_size=train_dataset[0][0].shape[-1],
-    seq_len=SEQ_LEN,
-    bias=BIAS)).to(DEVICE)
-opt = torch.optim.Adam(params=eval_rnn_model.parameters(), lr=LR)
-_evaluate_model(opt=opt,
-    model=eval_trans_model,
-    model_name="Transformer",
+evaluate_model(
+    model=trained_transformer_model,
     train_dataloader=train_dataloader,
-    test_dataloader=test_dataloader,
-    stopping_lr=STOP_LR)
+    test_dataloader=test_dataloader)

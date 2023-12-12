@@ -214,10 +214,10 @@ class TrainModels:
                                      num_workers=num_dataloader_processes)
 
         # Create RNN instance
-        perceptron_model = torch.compile(Perceptron(
+        perceptron_model = Perceptron(
                         input_size=self.train_dataset[0][0].shape[-1],
                         seq_len=self.seq_len,
-                        bias=bias)).to(self.device)
+                        bias=bias).to(self.device)
 
         # Create optimizer
         opt = torch.optim.Adam(params=perceptron_model.parameters(), lr=lr)
@@ -313,13 +313,13 @@ class TrainModels:
                                      num_workers=num_dataloader_processes)
 
         # Create RNN instance
-        rnn_model = torch.compile(RNN(
+        rnn_model = RNN(
                         input_size=self.train_dataset[0][0].shape[-1],
                         hidden_size=hidden_size,
                         num_layers=num_layers,
                         nonlinearity=nonlinearity,
                         bias=bias,
-                        dropout=dropout)).to(self.device)
+                        dropout=dropout).to(self.device)
 
         # Create optimizer
         opt = torch.optim.Adam(params=rnn_model.parameters(), lr=lr)
@@ -403,10 +403,10 @@ class TrainModels:
                                     num_workers=num_dataloader_processes)
         
         # Create LSTM model instance
-        lstm_model = torch.compile(LSTM(
+        lstm_model = LSTM(
                         self.train_dataset[0][0].shape[-1],
                         hidden_size,
-                        num_layers)).to(self.device)
+                        num_layers).to(self.device)
 
         # Create optimizer
         optimizer = torch.optim.Adam(lstm_model.parameters(), lr=lr)
@@ -505,7 +505,7 @@ class TrainModels:
                                      num_workers=num_dataloader_processes)
 
         # Create Transformer instance
-        transformer_model = torch.compile(Transformer(
+        transformer_model = Transformer(
                         input_size=self.train_dataset[0][0].shape[-1],
                         num_heads=num_heads,
                         hidden_size=hidden_size,
@@ -513,7 +513,7 @@ class TrainModels:
                         nonlinearity=nonlinearity,
                         bias=bias,
                         dropout=dropout,
-                        seq_len=self.seq_len)).to(self.device)
+                        seq_len=self.seq_len).to(self.device)
 
         # Create optimizer
         opt = torch.optim.Adam(params=transformer_model.parameters(), lr=lr)
