@@ -6,3 +6,4 @@ requests==2.31.0
 tqdm==4.66.1
 tensorboard==2.15.1
 packaging==23.2
+torcheval==0.0.7
